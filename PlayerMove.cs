@@ -61,4 +61,34 @@ public class PlayerMove : MonoBehaviour
             } // RaycastHit 변수의 collider로 검색 확인 가능
         }
     }
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if(collision.gameObject.tag == "Enemy") {
+            OnDamaged(collision.transform.position);
+        }
+    }
+
+    void OnDamaged(Vector2 targetPos) // 무적 효과 함수 생성
+    {
+        // Change Layer (Immortal Active)
+        gameObject.layer = 11;
+
+        // View Alpha
+        spriteRenderer.color = new Color(1, 1, 1, 0.4f);
+
+        // Reaction Force
+        int dirc = transform.position.x - targetPos.x > 0 ? 1 : -1;
+        rigid.AddForce(new Vector2(dirc, 1) * 7,ForceMode2D.Impulse);
+        
+        // Animation
+        anim.SetTrigger("doDamaged");
+        
+        Invoke("OffDamaged", 3);
+    }
+
+    void OffDamaged() // 무적 해제 함수 생성
+    {
+        gameObject.layer = 10;
+        spriteRenderer.color = new Color(1, 1, 1, 1);
+    }
 }
