@@ -64,7 +64,7 @@ public class QuestManager : MonoBehaviour
         questActionIndex = 0;
     }
 
-    void ControlObject() // 퀘스트 오브젝트를 관리할 함수 생성
+    public void ControlObject() // 퀘스트 오브젝트를 관리할 함수 생성
     {
         switch(questId)
         {
@@ -74,7 +74,10 @@ public class QuestManager : MonoBehaviour
                 break;
 
             case 20:
-                if (questActionIndex == 1)
+                if (questActionIndex == 0)
+                    questObject[0].SetActive(true); // 불러오기 했을 당시의 퀘스트 순서와 연결된 오브젝트 관리 추가 
+
+                else if (questActionIndex == 1)
                     questObject[0].SetActive(false);
                 break;
         }
