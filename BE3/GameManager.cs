@@ -29,17 +29,20 @@ public class GameManager : MonoBehaviour
     {
         // Sub Menu
         if (Input.GetButtonDown("Cancel")) // ESC로 켜고 끄기 가능하도록 작성
+            SubMenuActive();
+    }
+
+    public void SubMenuActive() // Cancel 기능은 함수로 분리하여 호출하도록 작성
+    {
+        if (menuSet.activeSelf)
         {
-            if (menuSet.activeSelf)
-            {
-                menuSet.SetActive(false);
-                Time.timeScale = 1;
-            }
-            else
-            {
-                menuSet.SetActive(true);
-                Time.timeScale = 0;
-            }
+            menuSet.SetActive(false);
+            Time.timeScale = 1;
+        }
+        else
+        {
+            menuSet.SetActive(true);
+            Time.timeScale = 0;
         }
     }
 
