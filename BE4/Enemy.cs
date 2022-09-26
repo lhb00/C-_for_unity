@@ -6,6 +6,7 @@ public class Enemy : MonoBehaviour
 {
     public string enemyName;
     // 적 비행기의 구성 요소를 변수로 구체화
+    public int enemyScore; // Enemy가 각자 가질 수 있는 Score 변수 생성
     public float speed;
     public int health;
     public Sprite[] sprites;
@@ -72,6 +73,8 @@ public class Enemy : MonoBehaviour
         Invoke("ReturnSprite", 0.1f); // 바꾼 스프라이트를 돌리기 위해 시간차 함수 호출
         if (health <= 0)
         {
+            Player playerLogic = player.GetComponent<Player>();
+            playerLogic.score += enemyScore; // Enemy가 파괴될 때, Player의 Score에 더해주는 로직 추가
             Destroy(gameObject);
         }
     }

@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI; // UI는 꼭 먼저 using UnityEngine.UI 선언
+using UnityEngine.SceneManagement; // 재시작을 위해 SceneManagement 활용
 
 public class GameManager : MonoBehaviour
 {
@@ -11,6 +13,9 @@ public class GameManager : MonoBehaviour
     public float curSpawnDelay;
 
     public GameObject player;
+    public Text scoreText;
+    public Image[] lifeImage;
+    public GameObject gameOverSet;
 
     void Update()
     {
@@ -23,6 +28,11 @@ public class GameManager : MonoBehaviour
             // Range() : 정해진 범위 내의 랜덤 숫자 변환 (float, int)
             curSpawnDelay = 0; // 적 생성 후엔 꼭 딜레이 변수 0으로 초기화
         }
+
+        // UI Score Update
+        Player playerLogic = player.GetComponent<Player>(); // Update에서 Score Text 업데이트
+        scoreText.text = string.Format("{0:n0}", playerLogic.score); // string.format() 지정된 양식으로 문자열을 변환해주는 함수
+        // {0:n0} : 세자리마다 쉼표로 나눠주는 숫자 양식
     }
 
     void SpawnEnemy()
@@ -54,6 +64,23 @@ public class GameManager : MonoBehaviour
         // 적 비행기 속도를 GameManager가 관리하도록 수정
     }
 
+    public void UpdateLifeIcon(int life)
+    {
+        // Image를 일단 모두 투명 상태로 두고, 목숨대로 반투명 설정
+
+        // UI Life Init Disable
+        for (int index = 0; index < 3; index++)
+        {
+            lifeImage[index].color = new Color(1, 1, 1, 0);
+        }
+
+        // UI Life Active
+        for (int index=0;index<life;index++)
+        {
+            lifeImage[index].color = new Color(1, 1, 1, 1);
+        }
+    }
+
     public void RespawnPlayer() // 플레이어를 복귀시키는 로직은 매니저가 관리
     {
         Invoke("RespawnPlayerExe", 2f); // 플레이어 복귀는 시간 차를 두기 위해 Invoke() 사용
@@ -63,5 +90,18 @@ public class GameManager : MonoBehaviour
     {
         player.transform.position = Vector3.down * 3.5f;
         player.SetActive(true);
+
+        Player playerLogic = player.GetComponent<Player>();
+        playerLogic.isHit = false; // bool 변수를 다시 초기화하는 공간도 꼭 구현
+    }
+
+    public void GameOver()
+    {
+        gameOverSet.SetActive(true);
+    }
+
+    public void GameRetry()
+    {
+        SceneManager.LoadScene(0);
     }
 }

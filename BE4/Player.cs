@@ -10,6 +10,9 @@ public class Player : MonoBehaviour
     public bool isTouchLeft;
     public bool isTouchRight;
 
+    // 플레이어 로직에 목숨과 점수 변수를 추가
+    public int life;
+    public int score;
     public float speed;
     public float power;
     public float maxShotDelay;
@@ -19,6 +22,7 @@ public class Player : MonoBehaviour
     public GameObject bulletObjB;
 
     public GameManager manager;
+    public bool isHit; // 피격 중복을 방지하기 위한 bool 변수 추가
 
     Animator anim;
 
@@ -131,8 +135,25 @@ public class Player : MonoBehaviour
         }
         else if(collision.gameObject.tag == "Enemy" || collision.gameObject.tag == "EnemyBullet") // OnTriggerEnter2D 안에 적에 대한 로직 추가
         {
-            manager.RespawnPlayer();
+            if (isHit)
+                return; // bool 변수와 return 키워드로 중복 피격 방지
+
+            isHit = true;
+            life--; // OnTriggerEnter()에서 목숨 로직 추가
+            manager.UpdateLifeIcon(life);
+
+            if(life == 0)
+            {
+                manager.GameOver();// 목숨이 다하면 GameOver 로직 실행
+            }
+
+            else
+            {
+                manager.RespawnPlayer();
+            }
+
             gameObject.SetActive(false);
+            Destroy(collision.gameObject);
         }
     }
 
