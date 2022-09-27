@@ -16,6 +16,9 @@ public class Enemy : MonoBehaviour
 
     public GameObject bulletObjA; // 플레이어의 쏘는 로직을 재활용
     public GameObject bulletObjB;
+    public GameObject itemCoin; // 프리펩을 저장할 변수 생성
+    public GameObject itemPower;
+    public GameObject itemBoom;
     public GameObject player;
 
     SpriteRenderer spriteRenderer;
@@ -66,8 +69,11 @@ public class Enemy : MonoBehaviour
         curShotDelay += Time.deltaTime; // 딜레이 변수에 Time.deltaTime을 계속 더하여 시간 계산
     }
 
-    void OnHit(int dmg)
+    public void OnHit(int dmg)
     {
+        if (health <= 0) // 아이템이 다중으로 만들어지지 않도록 예외처리
+            return;
+
         health -= dmg;
         spriteRenderer.sprite = sprites[1];
         Invoke("ReturnSprite", 0.1f); // 바꾼 스프라이트를 돌리기 위해 시간차 함수 호출
@@ -75,6 +81,28 @@ public class Enemy : MonoBehaviour
         {
             Player playerLogic = player.GetComponent<Player>();
             playerLogic.score += enemyScore; // Enemy가 파괴될 때, Player의 Score에 더해주는 로직 추가
+
+            // Random Ratio Item Drop
+            int ran = Random.Range(0, 10);
+            if (ran < 3) // 랜덤 숫자를 이용하여 아이템 확률 로직 작성 // Not Item 30%
+            {
+                Debug.Log("Not Item");
+            }
+
+            else if (ran < 6) // Coin // Coin 30%
+            {
+                Instantiate(itemCoin, transform.position, itemCoin.transform.rotation);
+            }
+
+            else if (ran < 8) // Power // Power 20%
+            {
+                Instantiate(itemPower, transform.position, itemPower.transform.rotation);
+            }
+
+            else if (ran < 10) // Boom // Boom 20%
+            {
+                Instantiate(itemBoom, transform.position, itemBoom.transform.rotation);
+            }
             Destroy(gameObject);
         }
     }

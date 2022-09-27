@@ -14,15 +14,20 @@ public class Player : MonoBehaviour
     public int life;
     public int score;
     public float speed;
-    public float power;
+    public int maxBoom; 
+    public int boom; // 폭탄도 파워처럼 최대값과 현재값 변수 추가
+    public int power;
+    public int maxPower; // 파워는 최대값을 설정하여 구현
     public float maxShotDelay;
     public float curShotDelay;
 
     public GameObject bulletObjA; // 총알 프리펩을 저장할 변수 생성
     public GameObject bulletObjB;
+    public GameObject boomEffect;
 
     public GameManager manager;
     public bool isHit; // 피격 중복을 방지하기 위한 bool 변수 추가
+    public bool isBoomTime;
 
     Animator anim;
 
@@ -36,6 +41,7 @@ public class Player : MonoBehaviour
         Move();
         Fire();
         Reload();
+        Boom();
     }
 
     void Move() // Update 함수의 로직을 함수로 분리
@@ -113,6 +119,39 @@ public class Player : MonoBehaviour
         curShotDelay += Time.deltaTime; // 딜레이 변수에 Time.deltaTime을 계속 더하여 시간 계산
     }
 
+    void Boom()
+    {
+        if (!Input.GetButton("Fire2")) // Input을 통한 폭탄 함수로 분리
+            return;
+        if (isBoomTime)
+            return;
+
+        if (boom == 0)
+            return;
+
+        boom--;
+        isBoomTime = true;
+        manager.UpdateBoomIcon(boom);
+
+        // 1. Effect visible
+        boomEffect.SetActive(true);
+        Invoke("OffBoomEffect", 4f); // 폭탄 스프라이트는 Invoke()로 시간차 비활성화
+
+        // 2, Remove Enemy
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy"); // FindGameObjectsWithTag : 태그로 장면의 모든 오브젝트를 추출
+        for (int index = 0; index < enemies.Length; index++)
+        {
+            Enemy enemyLogic = enemies[index].GetComponent<Enemy>();
+            enemyLogic.OnHit(1000);
+        }
+        // 3. Remove Enemy Bullet
+        GameObject[] bullets = GameObject.FindGameObjectsWithTag("EnemyBullet");
+        for (int index = 0; index < bullets.Length; index++)
+        {
+            Destroy(bullets[index]);
+        }
+    }
+
     void OnTriggerEnter2D(Collider2D collision) // OnTriggerEnter2D로 플래그 세우기
     {
         if(collision.gameObject.tag == "Border")
@@ -155,6 +194,41 @@ public class Player : MonoBehaviour
             gameObject.SetActive(false);
             Destroy(collision.gameObject);
         }
+
+        else if(collision.gameObject.tag == "Item")
+        {
+            Item item = collision.gameObject.GetComponent<Item>();
+            switch(item.type)
+            {
+                case "Coin":
+                    score += 1000;
+                    break;
+
+                case "Power":
+                    if (power == maxPower)
+                        score += 500;
+                    else
+                        power++;
+                    break;
+
+                case "Boom":
+                    if (boom == maxBoom)
+                        score += 500;
+                    else
+                    {
+                        boom++;
+                        manager.UpdateBoomIcon(boom);
+                    }
+                    break;
+            }
+            Destroy(collision.gameObject);
+        }
+    }
+
+    void OffBoomEffect()
+    {
+        boomEffect.SetActive(false);
+        isBoomTime = false;
     }
 
     void OnTriggerExit2D(Collider2D collision) // OnTriggerExit2D로 플래그 지우기 

@@ -15,6 +15,7 @@ public class GameManager : MonoBehaviour
     public GameObject player;
     public Text scoreText;
     public Image[] lifeImage;
+    public Image[] boomImage;
     public GameObject gameOverSet;
 
     void Update()
@@ -78,6 +79,23 @@ public class GameManager : MonoBehaviour
         for (int index=0;index<life;index++)
         {
             lifeImage[index].color = new Color(1, 1, 1, 1);
+        }
+    }
+
+    public void UpdateBoomIcon(int boom)
+    {
+        // Image를 일단 모두 투명 상태로 두고, 목숨대로 반투명 설정
+
+        // UI Boom Init Disable
+        for (int index = 0; index < 3; index++)
+        {
+            boomImage[index].color = new Color(1, 1, 1, 0);
+        }
+
+        // UI Boom Active
+        for (int index = 0; index < boom; index++)
+        {
+            boomImage[index].color = new Color(1, 1, 1, 1);
         }
     }
 
