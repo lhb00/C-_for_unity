@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement; // 재시작을 위해 SceneManagement 활용
 
 public class GameManager : MonoBehaviour
 {
-    public GameObject[] enemyObjs;
+    public string[] enemyObjs;
     public Transform[] spawnPoints; // 적 프리펨 배열과 생성 위치 배열 변수를 선언
 
     public float maxSpawnDelay; // 적 생성 딜레이 변수 선p
@@ -17,6 +17,12 @@ public class GameManager : MonoBehaviour
     public Image[] lifeImage;
     public Image[] boomImage;
     public GameObject gameOverSet;
+    public ObjectManager objectManager;
+
+    void Awake()
+    {
+        enemyObjs = new string[] { "EnemyS", "EnemyM", "EnemyL" };
+    }
 
     void Update()
     {
@@ -38,14 +44,15 @@ public class GameManager : MonoBehaviour
 
     void SpawnEnemy()
     {
-        int ranEnemy = Random.Range(0, 3); // Range()함수는 매개변수에 의해 반환 타입 결
+        int ranEnemy = Random.Range(0, 3); // Range()함수는 매개변수에 의해 반환 타입 결정
         int ranPoint = Random.Range(0, 9);
-        GameObject enemy = Instantiate(enemyObjs[ranEnemy],
-                    spawnPoints[ranPoint].position,
-                    spawnPoints[ranPoint].rotation); // 랜덤으로 정해진 적 프리, 생성 위치로 생성 로직 작성
+        GameObject enemy = objectManager.MakeObj(enemyObjs[ranEnemy]); // 기존의 Instantiate()를 오브젝트 풀링으로 교체
+        enemy.transform.position = spawnPoints[ranPoint].position; // 위치와 각도는 인스턴스 변수에서 적용
+
         Rigidbody2D rigid = enemy.GetComponent<Rigidbody2D>();
         Enemy enemyLogic = enemy.GetComponent<Enemy>();
         enemyLogic.player = player; // 적 생성 직후에 플레이어 변수를 넘겨주는 것으로 프리펩은 이미 Scene에 올라온 오브젝트에 접근 불가능한 문제 해결
+        enemyLogic.objectManager = objectManager;
         if(ranPoint == 5 || ranPoint == 6) // Right Spawn
         {
             enemy.transform.Rotate(Vector3.back * 90);// 속도 방향에 따라 적 비행기 회전 적용

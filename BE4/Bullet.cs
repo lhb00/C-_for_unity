@@ -9,6 +9,6 @@ public class Bullet : MonoBehaviour
     void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.gameObject.tag == "BorderBullet") // 총알 제거 경계를 위한 새로운 태그로 조건 걸기
-            Destroy(gameObject); // Destroy(): 매개변수 오브젝트를 삭제하는 함수
+            gameObject.SetActive(false); // Destroy(): 매개변수 오브젝트를 삭제하는 함수
     }
 }

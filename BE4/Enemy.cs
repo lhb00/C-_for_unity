@@ -20,6 +20,7 @@ public class Enemy : MonoBehaviour
     public GameObject itemPower;
     public GameObject itemBoom;
     public GameObject player;
+    public ObjectManager objectManager;
 
     SpriteRenderer spriteRenderer;
 
@@ -28,6 +29,22 @@ public class Enemy : MonoBehaviour
     void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
+    void OnEnable() // OnEnable() : 컴포넌트가 활성화 될 때 호출되는 생명주기함수
+    {
+        switch(enemyName)
+        {
+            case "L":
+                health = 40;
+                break;
+            case "M":
+                health = 10;
+                break;
+            case "S":
+                health = 3;
+                break;
+        }
     }
 
     void Update()
@@ -42,20 +59,23 @@ public class Enemy : MonoBehaviour
             return;
 
         if(enemyName == "S")
-        { 
-            GameObject bullet = Instantiate(bulletObjA, transform.position, transform.rotation);
+        {
+            GameObject bullet = objectManager.MakeObj("bulletEnemyA");
+            bullet.transform.position = transform.position;
             Rigidbody2D rigid = bullet.GetComponent<Rigidbody2D>();
             Vector3 dirVec = player.transform.position - transform.position; // 플레이어에게 쏘기 위해 플레이어 변수 필요
             rigid.AddForce(dirVec.normalized * 3, ForceMode2D.Impulse);
         }
         else if (enemyName == "L")
         {
-            GameObject bulletR = Instantiate(bulletObjA, transform.position + Vector3.right * 0.3f, transform.rotation);
+            GameObject bulletR = objectManager.MakeObj("bulletEnemyB");
+            bulletR.transform.position = transform.position + Vector3.right * 0.3f;
             Rigidbody2D rigidR= bulletR.GetComponent<Rigidbody2D>();
             Vector3 dirVecR = player.transform.position - (transform.position + Vector3.right * 0.3f); // 플레이어에게 쏘기 위해 플레이어 변수 필요
             rigidR.AddForce(dirVecR.normalized * 4, ForceMode2D.Impulse); // normalized : 벡터가 단위 값(1)로 변환된 변.
 
-            GameObject bulletL = Instantiate(bulletObjA, transform.position + Vector3.left * 0.3f, transform.rotation);
+            GameObject bulletL = objectManager.MakeObj("bulletEnemyB");
+            bulletL.transform.position = transform.position + Vector3.left * 0.3f;
             Rigidbody2D rigidL = bulletL.GetComponent<Rigidbody2D>();
             Vector3 dirVecL = player.transform.position - (transform.position + Vector3.left * 0.3f);
             rigidL.AddForce(dirVecL.normalized * 4, ForceMode2D.Impulse);
@@ -91,19 +111,23 @@ public class Enemy : MonoBehaviour
 
             else if (ran < 6) // Coin // Coin 30%
             {
-                Instantiate(itemCoin, transform.position, itemCoin.transform.rotation);
+                GameObject itemCoin = objectManager.MakeObj("itemCoin");
+                itemCoin.transform.position = transform.position;
             }
 
             else if (ran < 8) // Power // Power 20%
             {
-                Instantiate(itemPower, transform.position, itemPower.transform.rotation);
+                GameObject itemPower = objectManager.MakeObj("itemPower");
+                itemPower.transform.position = transform.position;
             }
 
             else if (ran < 10) // Boom // Boom 20%
             {
-                Instantiate(itemBoom, transform.position, itemBoom.transform.rotation);
+                GameObject itemBoom = objectManager.MakeObj("itemBoom");
+                itemBoom.transform.position = transform.position;
             }
-            Destroy(gameObject);
+            gameObject.SetActive(false); // Destory()는 SetActive(false)로 교체
+            transform.rotation = Quaternion.identity; // Quaterion.identuty  : 기본 회전값 = 0
         }
     }
 
@@ -115,7 +139,10 @@ public class Enemy : MonoBehaviour
     void OnTriggerEnter2D(Collider2D collision) // OnTriggerEnter2D를 통하여 이벤트 로직 작성
     {
         if (collision.gameObject.tag == "BorderBullet")
-            Destroy(gameObject); // 총알과 마찬가지로 바깥으로 나간 후에는 삭제
+        {
+            gameObject.SetActive(false); // 총알과 마찬가지로 바깥으로 나간 후에는 삭제
+            transform.rotation = Quaternion.identity;
+        }
 
         else if (collision.gameObject.tag == "PlayerBullet")
         {
@@ -123,7 +150,7 @@ public class Enemy : MonoBehaviour
             OnHit(bullet.dmg);
 
 
-            Destroy(collision.gameObject); // 피격시 플레이어 총알도 삭제하는 로직 추가
+            collision.gameObject.SetActive(false); // 피격시 플레이어 총알도 삭제하는 로직 추가
         }
     }
 }

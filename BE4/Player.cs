@@ -25,7 +25,8 @@ public class Player : MonoBehaviour
     public GameObject bulletObjB;
     public GameObject boomEffect;
 
-    public GameManager manager;
+    public GameManager gameManager;
+    public ObjectManager objectManager;
     public bool isHit; // 피격 중복을 방지하기 위한 bool 변수 추가
     public bool isBoomTime;
 
@@ -78,7 +79,9 @@ public class Player : MonoBehaviour
             case 1:
 
                 // Power One
-                GameObject bullet = Instantiate(bulletObjA, transform.position, transform.rotation); // Instantiate(): 매개변수 오브젝트를 생성하는 함수
+                GameObject bullet = objectManager.MakeObj("bulletPlayerA"); // Instantiate(): 매개변수 오브젝트를 생성하는 함수
+                // Instantiate()를 모두 오브젝트 풀링으로 교체
+                bullet.transform.position = transform.position;
                 // 위치, 회전 매개변수는 플레이어 transform을 사용
                 Rigidbody2D rigid = bullet.GetComponent<Rigidbody2D>(); // 리지드바디를 가져와 Addforce()로 총알 발사 로직 작성
                 rigid.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
@@ -86,8 +89,10 @@ public class Player : MonoBehaviour
 
             case 2:
                 // Power One
-                GameObject bulletR = Instantiate(bulletObjA, transform.position + Vector3.right * 0.1f, transform.rotation); // Vector3.right, left 단위벡터를 더해 위치 조절
-                GameObject bulletL = Instantiate(bulletObjA, transform.position + Vector3.left * 0.1f, transform.rotation);
+                GameObject bulletR = objectManager.MakeObj("bulletPlayerA");
+                bulletR.transform.position = transform.position + Vector3.right * 0.1f; // Vector3.right, left 단위벡터를 더해 위치 조절
+                GameObject bulletL = objectManager.MakeObj("bulletPlayerA");
+                bulletL.transform.position = transform.position + Vector3.left * 0.1f;
 
                 Rigidbody2D rigidR = bulletR.GetComponent<Rigidbody2D>();
                 rigidR.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
@@ -96,9 +101,13 @@ public class Player : MonoBehaviour
                 break;
 
             case 3:
-                GameObject bulletRR = Instantiate(bulletObjA, transform.position + Vector3.right * 0.35f, transform.rotation);
-                GameObject bulletCC = Instantiate(bulletObjB, transform.position, transform.rotation);
-                GameObject bulletLL = Instantiate(bulletObjA, transform.position + Vector3.left * 0.35f, transform.rotation);
+                GameObject bulletRR = objectManager.MakeObj("bulletPlayerA");
+                bulletRR.transform.position = transform.position + Vector3.right * 0.35f;
+                GameObject bulletCC = objectManager.MakeObj("bulletPlayerB");
+                bulletCC.transform.position = transform.position;
+                GameObject bulletLL = objectManager.MakeObj("bulletPlayerA");
+                bulletLL.transform.position = transform.position + Vector3.left * 0.35f;
+
 
                 Rigidbody2D rigidRR = bulletRR.GetComponent<Rigidbody2D>();
                 rigidRR.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
@@ -131,24 +140,61 @@ public class Player : MonoBehaviour
 
         boom--;
         isBoomTime = true;
-        manager.UpdateBoomIcon(boom);
+        gameManager.UpdateBoomIcon(boom);
 
         // 1. Effect visible
         boomEffect.SetActive(true);
         Invoke("OffBoomEffect", 4f); // 폭탄 스프라이트는 Invoke()로 시간차 비활성화
 
         // 2, Remove Enemy
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy"); // FindGameObjectsWithTag : 태그로 장면의 모든 오브젝트를 추출
-        for (int index = 0; index < enemies.Length; index++)
+        GameObject[] enemiesL = objectManager.GetPool("EnemyL"); // FindGameObjectsWithTag : 태그로 장면의 모든 오브젝트를 추출
+        // Find 계열 함수를 오브젝트 풀링으로 교체
+        GameObject[] enemiesM = objectManager.GetPool("EnemyM");
+        GameObject[] enemiesS = objectManager.GetPool("EnemyS");
+        for (int index = 0; index < enemiesL.Length; index++)
         {
-            Enemy enemyLogic = enemies[index].GetComponent<Enemy>();
-            enemyLogic.OnHit(1000);
+            if(enemiesL[index].activeSelf)
+            {
+                Enemy enemyLogic = enemiesL[index].GetComponent<Enemy>();
+                enemyLogic.OnHit(1000);
+            }
+
         }
-        // 3. Remove Enemy Bullet
-        GameObject[] bullets = GameObject.FindGameObjectsWithTag("EnemyBullet");
-        for (int index = 0; index < bullets.Length; index++)
+
+        for (int index = 0; index < enemiesM.Length; index++)
         {
-            Destroy(bullets[index]);
+            if (enemiesM[index].activeSelf)
+            {
+                Enemy enemyLogic = enemiesM[index].GetComponent<Enemy>();
+                enemyLogic.OnHit(1000);
+            }
+
+        }
+
+        for (int index = 0; index < enemiesS.Length; index++)
+        {
+            if (enemiesS[index].activeSelf)
+            {
+                Enemy enemyLogic = enemiesS[index].GetComponent<Enemy>();
+                enemyLogic.OnHit(1000);
+            }
+
+        }
+
+        // 3. Remove Enemy Bullet
+        GameObject[] bulletsA = objectManager.GetPool("BulletEnemyA");
+        GameObject[] bulletsB = objectManager.GetPool("BulletEnemyB");
+
+        for (int index = 0; index < bulletsA.Length; index++)
+        {
+            if (bulletsA[index].activeSelf)
+                bulletsA[index].SetActive(false);
+        }
+
+        for (int index = 0; index < bulletsB.Length; index++)
+        {
+            if (bulletsB[index].activeSelf)
+                bulletsB[index].SetActive(false);
         }
     }
 
@@ -179,20 +225,20 @@ public class Player : MonoBehaviour
 
             isHit = true;
             life--; // OnTriggerEnter()에서 목숨 로직 추가
-            manager.UpdateLifeIcon(life);
+            gameManager.UpdateLifeIcon(life);
 
             if(life == 0)
             {
-                manager.GameOver();// 목숨이 다하면 GameOver 로직 실행
+                gameManager.GameOver();// 목숨이 다하면 GameOver 로직 실행
             }
 
             else
             {
-                manager.RespawnPlayer();
+                gameManager.RespawnPlayer();
             }
 
             gameObject.SetActive(false);
-            Destroy(collision.gameObject);
+            collision.gameObject.SetActive(false);
         }
 
         else if(collision.gameObject.tag == "Item")
@@ -217,11 +263,11 @@ public class Player : MonoBehaviour
                     else
                     {
                         boom++;
-                        manager.UpdateBoomIcon(boom);
+                        gameManager.UpdateBoomIcon(boom);
                     }
                     break;
             }
-            Destroy(collision.gameObject);
+            collision.gameObject.SetActive(false);
         }
     }
 
