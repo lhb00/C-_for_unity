@@ -30,6 +30,8 @@ public class Player : MonoBehaviour
     public bool isHit; // 피격 중복을 방지하기 위한 bool 변수 추가
     public bool isBoomTime;
 
+    public GameObject[] followers;
+
     Animator anim;
 
     void Awake()
@@ -100,7 +102,7 @@ public class Player : MonoBehaviour
                 rigidL.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
                 break;
 
-            case 3:
+            default:
                 GameObject bulletRR = objectManager.MakeObj("bulletPlayerA");
                 bulletRR.transform.position = transform.position + Vector3.right * 0.35f;
                 GameObject bulletCC = objectManager.MakeObj("bulletPlayerB");
@@ -254,7 +256,10 @@ public class Player : MonoBehaviour
                     if (power == maxPower)
                         score += 500;
                     else
+                    {
                         power++;
+                        AddFollower();
+                    }
                     break;
 
                 case "Boom":
@@ -275,6 +280,16 @@ public class Player : MonoBehaviour
     {
         boomEffect.SetActive(false);
         isBoomTime = false;
+    }
+
+    void AddFollower()
+    {
+        if (power == 4) // 파워에 따라서 보조 무기를 활성화
+            followers[0].SetActive(true);
+        else if (power == 5)
+            followers[1].SetActive(true);
+        else if (power == 6)
+            followers[2].SetActive(true);
     }
 
     void OnTriggerExit2D(Collider2D collision) // OnTriggerExit2D로 플래그 지우기 

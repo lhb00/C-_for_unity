@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI; // UI는 꼭 먼저 using UnityEngine.UI 선언
 using UnityEngine.SceneManagement; // 재시작을 위해 SceneManagement 활용
+using System.IO; // 파일 읽기를 위한 Sysyem.IO 사용
 
 public class GameManager : MonoBehaviour
 {
     public string[] enemyObjs;
     public Transform[] spawnPoints; // 적 프리펨 배열과 생성 위치 배열 변수를 선언
 
-    public float maxSpawnDelay; // 적 생성 딜레이 변수 선p
+    public float nextSpawnDelay; // 적 생성 딜레이 변수 선p
     public float curSpawnDelay;
 
     public GameObject player;
@@ -19,19 +20,59 @@ public class GameManager : MonoBehaviour
     public GameObject gameOverSet;
     public ObjectManager objectManager;
 
+    public List<Spawn> spawnList; // 적 출현에 관련된 변수 생성
+    public int spawnIndex;
+    public bool spawnEnd;
+
     void Awake()
     {
+        spawnList = new List<Spawn>();
         enemyObjs = new string[] { "EnemyS", "EnemyM", "EnemyL" };
+        ReadSpawnFile();
+    }
+
+    void ReadSpawnFile()
+    {
+        // 1. 변수 초기화
+        spawnList.Clear();
+        spawnIndex = 0; // 적 출현에 변수 초기화
+        spawnEnd = false;
+
+        // 2, 리스폰 파일 읽기
+        TextAsset textFile = Resources.Load("Stage 0") as TextAsset; // TextAsset : 텍스트 파일 에셋 클래스
+        // Resources.Load() : Resources 폴더 내 파일 불러오기
+        StringReader stringReader = new StringReader(textFile.text); // StringReader : 파일 내의 문자열 데이터 읽기 클래스
+
+        while(stringReader != null)
+        {
+            string line = stringReader.ReadLine(); // ReadLine() : 텍스트 데이터를 한 줄 씩 반환(자동 줄 바꿈)
+            Debug.Log(line);
+
+            if (line == null)
+                break;
+
+            // 리스폰 데이터 생성
+            Spawn spawnData = new Spawn();
+            spawnData.delay = float.Parse(line.Split(',')[0]); // Split() : 지정한 구분 문자로 문자열을 나누는 함수
+            spawnData.type = line.Split(',')[1];
+            spawnData.point = int.Parse(line.Split(',')[2]);
+            spawnList.Add(spawnData); // 구조체 변수를 채우고 리스트에 저장
+        } // while문으로 텍스트 데이터 끝에 다다를 때까지 반복
+
+        // 텍스트 파일 닫기
+        stringReader.Close(); // StringReader로 열어둔 파일은 작업이 끝난 후 꼭 닫기
+
+        // 첫번째 스폰 딜레이 적용
+        nextSpawnDelay = spawnList[0].delay; // 미리 첫번째 출현 시간을 적용
     }
 
     void Update()
     {
         curSpawnDelay += Time.deltaTime;
 
-        if(curSpawnDelay > maxSpawnDelay)
+        if(curSpawnDelay > nextSpawnDelay && !spawnEnd) // 플래그 변수를 적 생성 조건에 추가
         {
             SpawnEnemy();
-            maxSpawnDelay = Random.Range(0.5f, 3f); // RandomRange()은 현재 사용하지 않는 함수
             // Range() : 정해진 범위 내의 랜덤 숫자 변환 (float, int)
             curSpawnDelay = 0; // 적 생성 후엔 꼭 딜레이 변수 0으로 초기화
         }
@@ -44,22 +85,34 @@ public class GameManager : MonoBehaviour
 
     void SpawnEnemy()
     {
-        int ranEnemy = Random.Range(0, 3); // Range()함수는 매개변수에 의해 반환 타입 결정
-        int ranPoint = Random.Range(0, 9);
-        GameObject enemy = objectManager.MakeObj(enemyObjs[ranEnemy]); // 기존의 Instantiate()를 오브젝트 풀링으로 교체
-        enemy.transform.position = spawnPoints[ranPoint].position; // 위치와 각도는 인스턴스 변수에서 적용
+        int enemyIndex = 0;
+        switch(spawnList[spawnIndex].type) // 기존 적 생성 로직을 구조체를 활용한 로직으로 교체
+        {
+            case "S":
+                enemyIndex = 0;
+                break;
+            case "M":
+                enemyIndex = 1;
+                break;
+            case "L":
+                enemyIndex = 2;
+                break;
+        }
+        int enemyPoint = spawnList[spawnIndex].point;
+        GameObject enemy = objectManager.MakeObj(enemyObjs[enemyIndex]); // 기존의 Instantiate()를 오브젝트 풀링으로 교체
+        enemy.transform.position = spawnPoints[enemyPoint].position; // 위치와 각도는 인스턴스 변수에서 적용
 
         Rigidbody2D rigid = enemy.GetComponent<Rigidbody2D>();
         Enemy enemyLogic = enemy.GetComponent<Enemy>();
         enemyLogic.player = player; // 적 생성 직후에 플레이어 변수를 넘겨주는 것으로 프리펩은 이미 Scene에 올라온 오브젝트에 접근 불가능한 문제 해결
         enemyLogic.objectManager = objectManager;
-        if(ranPoint == 5 || ranPoint == 6) // Right Spawn
+        if(enemyPoint == 5 || enemyPoint == 6) // Right Spawn
         {
             enemy.transform.Rotate(Vector3.back * 90);// 속도 방향에 따라 적 비행기 회전 적용
             rigid.velocity = new Vector2(enemyLogic.speed * (-1), -1); // 생성 위치에 따라 속도를 다르게 설정
         }
 
-        else if(ranPoint == 7 || ranPoint == 8) // Left Spawn
+        else if(enemyPoint == 7 || enemyPoint == 8) // Left Spawn
         {
             enemy.transform.Rotate(Vector3.forward * 90);
             rigid.velocity = new Vector2(enemyLogic.speed, -1);
@@ -70,6 +123,18 @@ public class GameManager : MonoBehaviour
             rigid.velocity = new Vector2(0, enemyLogic.speed * (-1));
         }
         // 적 비행기 속도를 GameManager가 관리하도록 수정
+
+        // 리스폰 인덱스 증가
+        spawnIndex++;
+        if(spawnIndex == spawnList.Count)
+        {
+            spawnEnd = true;
+            return;
+        }
+
+        // 다음 리스폰 딜레이 갱신
+        nextSpawnDelay = spawnList[spawnIndex].delay; // 적 생성이 완료되면 다음 생성을 위한 시간 갱신
+        
     }
 
     public void UpdateLifeIcon(int life)

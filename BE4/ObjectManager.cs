@@ -14,6 +14,7 @@ public class ObjectManager : MonoBehaviour
     public GameObject bulletPlayerBprefab;
     public GameObject bulletEnemyAprefab;
     public GameObject bulletEnemyBprefab;
+    public GameObject bulletFollowerprefab;
 
     GameObject[] enemyL; // 프리펩을 생성하여 저장할 배열 변수 생성
     GameObject[] enemyM;
@@ -27,6 +28,7 @@ public class ObjectManager : MonoBehaviour
     GameObject[] bulletPlayerB;
     GameObject[] bulletEnemyA;
     GameObject[] bulletEnemyB;
+    GameObject[] bulletFollower;
 
     GameObject[] targetPool;
 
@@ -44,6 +46,7 @@ public class ObjectManager : MonoBehaviour
         bulletPlayerB = new GameObject[100];
         bulletEnemyA = new GameObject[100];
         bulletEnemyB = new GameObject[100];
+        bulletFollower = new GameObject[100];
 
         Generate(); // 첫 로딩 시간 = 장면 배치 + 오브젝트 풀 생성
     }
@@ -113,6 +116,12 @@ public class ObjectManager : MonoBehaviour
             bulletEnemyB[index] = Instantiate(bulletEnemyBprefab);
             bulletEnemyB[index].SetActive(false);
         }
+
+        for (int index = 0; index < bulletFollower.Length; index++)
+        {
+            bulletFollower[index] = Instantiate(bulletFollowerprefab);
+            bulletFollower[index].SetActive(false);
+        }
     }
 
     public GameObject MakeObj(string type) // 오브젝트 풀에 접근할 수 있는 함수 생성
@@ -148,6 +157,10 @@ public class ObjectManager : MonoBehaviour
                 break;
             case "bulletEnemyB":
                 targetPool = bulletEnemyB;
+                break;
+
+            case "bulletFollower":
+                targetPool = bulletFollower;
                 break;
         }
 
@@ -196,6 +209,9 @@ public class ObjectManager : MonoBehaviour
                 break;
             case "bulletEnemyB":
                 targetPool = bulletEnemyB;
+                break;
+            case "bulletFollower":
+                targetPool = bulletFollower;
                 break;
         }
 
