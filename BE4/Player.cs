@@ -220,7 +220,7 @@ public class Player : MonoBehaviour
                     break;
             }
         }
-        else if(collision.gameObject.tag == "Enemy" || collision.gameObject.tag == "EnemyBullet") // OnTriggerEnter2D 안에 적에 대한 로직 추가
+        else if(collision.gameObject.tag == "EnemyBullet") // OnTriggerEnter2D 안에 적에 대한 로직 추가
         {
             if (isHit)
                 return; // bool 변수와 return 키워드로 중복 피격 방지
@@ -241,6 +241,58 @@ public class Player : MonoBehaviour
 
             gameObject.SetActive(false);
             collision.gameObject.SetActive(false);
+        }
+
+        else if(collision.gameObject.tag == "Enemy")
+        {
+            GameObject boss = collision.gameObject;
+            Enemy enemyBoss = boss.GetComponent<Enemy>();
+            if (enemyBoss.enemyName == "B")
+            {
+                if (isHit)
+                    return; // bool 변수와 return 키워드로 중복 피격 방지
+
+                isHit = true;
+                life--; // OnTriggerEnter()에서 목숨 로직 추가
+                gameManager.UpdateLifeIcon(life);
+
+                if (life == 0)
+                {
+                    gameManager.GameOver();// 목숨이 다하면 GameOver 로직 실행
+                }
+
+                else
+                {
+                    gameManager.RespawnPlayer();
+                }
+
+                gameObject.SetActive(false);
+
+            }
+
+            else
+            {
+                if (isHit)
+                    return; // bool 변수와 return 키워드로 중복 피격 방지
+
+                isHit = true;
+                life--; // OnTriggerEnter()에서 목숨 로직 추가
+                gameManager.UpdateLifeIcon(life);
+
+                if (life == 0)
+                {
+                    gameManager.GameOver();// 목숨이 다하면 GameOver 로직 실행
+                }
+
+                else
+                {
+                    gameManager.RespawnPlayer();
+                }
+
+                gameObject.SetActive(false);
+                collision.gameObject.SetActive(false);
+            }
+
         }
 
         else if(collision.gameObject.tag == "Item")
