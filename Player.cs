@@ -31,12 +31,51 @@ public class Player : MonoBehaviour
     public bool isBoomTime;
 
     public GameObject[] followers;
+    public bool isRespawnTime; // 무적 타임 플래그 bool 변수 생성
+
+    public bool[] joyControl; // 방향 버튼에 대한 bool 변수 추가
+    public bool isControl;
+    public bool isButtonA;
+    public bool isButtonB;
 
     Animator anim;
+    SpriteRenderer spriteRenderer;
 
     void Awake()
     {
         anim = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
+    void OnEnable()
+    {
+        Unbeatable();
+        Invoke("Unbeatable", 3);
+    }
+
+    void Unbeatable()
+    {
+        isRespawnTime = !isRespawnTime;
+
+        if(isRespawnTime) // 무적 타임 이펙트(투명)
+        {
+            spriteRenderer.color = new Color(1, 1, 1, 0.5f); // 무적 시간일 때는 스프라이트 투명하게 설정
+
+            for(int index=0; index < followers.Length; index++)
+            {
+                followers[index].GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 0.5f);
+            }
+        }
+
+        else // 무적 타임 종료(원래대로)
+        {
+            spriteRenderer.color = new Color(1, 1, 1, 1);
+
+            for (int index = 0; index < followers.Length; index++)
+            {
+                followers[index].GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 1);
+            }
+        }
     }
 
     void Update()
@@ -47,15 +86,45 @@ public class Player : MonoBehaviour
         Boom();
     }
 
+    public void JoyPanel(int type)
+    {
+        for (int index = 0; index < 9; index++)
+        {
+            joyControl[index] = index == type;
+        }
+    }
+
+    public void JoyDown()
+    {
+        isControl = true;
+    }
+
+    public void JoyUp()
+    {
+        isControl = false;
+    }
+
     void Move() // Update 함수의 로직을 함수로 분리
     {
+        // Keyboard Control Value
         // Input.GetAxisRaw()를 통한 방향 값 추출
         float h = Input.GetAxisRaw("Horizontal");
-        // 플래그 변수를 사용하여 경계 이상 넘지 못하도록 값 제한
-        if ((isTouchRight && h == 1) || (isTouchLeft && h == -1))
-            h = 0;
         float v = Input.GetAxisRaw("Vertical");
-        if ((isTouchTop && v == 1) || (isTouchBottom && v == -1))
+
+        // Joy Control Value
+        if(joyControl[0]) { h = -1; v = 1; } // 방향 버튼 변수에 따라 수평, 수직 값 적용
+        if (joyControl[1]) { h = 0; v = 1; }
+        if (joyControl[2]) { h = 1; v = 1; }
+        if (joyControl[3]) { h = -1; v = 0; }
+        if (joyControl[4]) { h = 0; v = 0; }
+        if (joyControl[5]) { h = 1; v = 0; }
+        if (joyControl[6]) { h = 1; v = -1; }
+        if (joyControl[7]) { h = 0; v = -1; }
+        if (joyControl[8]) { h = -1; v = -1; }
+        // 플래그 변수를 사용하여 경계 이상 넘지 못하도록 값 제한
+        if ((isTouchRight && h == 1) || (isTouchLeft && h == -1) || !isControl) // 방향 Down 변수 조건을 추가하여 UI 누른 상태에서만 작동
+            h = 0;
+        if ((isTouchTop && v == 1) || (isTouchBottom && v == -1) || !isControl)
             v = 0;
         Vector3 curPos = transform.position;
         Vector3 nextPos = new Vector3(h, v, 0) * speed * Time.deltaTime; // transform 이동에는 Time.DeltaTime을 꼭 사용하ㄱ
@@ -68,9 +137,27 @@ public class Player : MonoBehaviour
         }
     }
 
+    public void ButtonADown()
+    {
+        isButtonA = true;
+    }
+
+    public void ButtonAUp()
+    {
+        isButtonA = false;
+    }
+
+    public void ButtonBDown()
+    {
+        isButtonB = true;
+    }
+
     void Fire()
     {
-        if (!Input.GetButton("Fire1")) // Input.GetButton()으로 발사 버튼 적용
+        /* if (!Input.GetButton("Fire1")) // Input.GetButton()으로 발사 버튼 적용
+            return; */ // 기존 공격, 폭탄 조건을 키 입력에서 플래그 변수로 변경
+
+        if (!isButtonA)
             return;
 
         if (curShotDelay < maxShotDelay)
@@ -132,8 +219,11 @@ public class Player : MonoBehaviour
 
     void Boom()
     {
-        if (!Input.GetButton("Fire2")) // Input을 통한 폭탄 함수로 분리
+        /* if (!Input.GetButton("Fire2")) // Input을 통한 폭탄 함수로 분리
+            return; */
+        if (!isButtonB)
             return;
+
         if (isBoomTime)
             return;
 
@@ -222,12 +312,16 @@ public class Player : MonoBehaviour
         }
         else if(collision.gameObject.tag == "EnemyBullet") // OnTriggerEnter2D 안에 적에 대한 로직 추가
         {
+            if (isRespawnTime) // 변수를 활용하여 충돌 이벤트 제한
+                return;
+
             if (isHit)
                 return; // bool 변수와 return 키워드로 중복 피격 방지
 
             isHit = true;
             life--; // OnTriggerEnter()에서 목숨 로직 추가
             gameManager.UpdateLifeIcon(life);
+            gameManager.CallExplosion(transform.position, "P"); // GameManager에서 생성한 폭발 함수를 플레이어, 적에서 호출
 
             if(life == 0)
             {
@@ -247,6 +341,8 @@ public class Player : MonoBehaviour
         {
             GameObject boss = collision.gameObject;
             Enemy enemyBoss = boss.GetComponent<Enemy>();
+            if (isRespawnTime) // 변수를 활용하여 충돌 이벤트 제한
+                return;
             if (enemyBoss.enemyName == "B")
             {
                 if (isHit)
@@ -255,6 +351,7 @@ public class Player : MonoBehaviour
                 isHit = true;
                 life--; // OnTriggerEnter()에서 목숨 로직 추가
                 gameManager.UpdateLifeIcon(life);
+                gameManager.CallExplosion(transform.position, "P");
 
                 if (life == 0)
                 {
