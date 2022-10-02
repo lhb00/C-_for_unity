@@ -21,6 +21,7 @@ public class Enemy : MonoBehaviour
     public GameObject itemBoom;
     public GameObject player;
     public ObjectManager objectManager;
+    public GameManager gameManager;
 
     SpriteRenderer spriteRenderer;
     Animator anim;
@@ -268,7 +269,7 @@ public class Enemy : MonoBehaviour
             playerLogic.score += enemyScore; // Enemy가 파괴될 때, Player의 Score에 더해주는 로직 추가
 
             // Random Ratio Item Drop
-            int ran = enemyName == "B" ? 0: Random.Range(0, 10);
+            int ran = enemyName == "B" ? 0 : Random.Range(0, 10);
             if (ran < 3) // 랜덤 숫자를 이용하여 아이템 확률 로직 작성 // Not Item 30%
             {
                 Debug.Log("Not Item");
@@ -293,6 +294,11 @@ public class Enemy : MonoBehaviour
             }
             gameObject.SetActive(false); // Destory()는 SetActive(false)로 교체
             transform.rotation = Quaternion.identity; // Quaterion.identuty  : 기본 회전값 = 0
+            gameManager.CallExplosion(transform.position, enemyName);
+
+            // Boss Kill
+            if (enemyName == "B")
+                gameManager.StageEnd();
         }
     }
 

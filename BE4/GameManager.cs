@@ -7,6 +7,12 @@ using System.IO; // 파일 읽기를 위한 Sysyem.IO 사용
 
 public class GameManager : MonoBehaviour
 {
+    public int stage;
+    public Animator stageAnim; // Animator 변수를 2개 생성해서 트리거 호출
+    public Animator clearAnim;
+    public Animator fadeAnim;
+    public Transform playerPos;
+
     public string[] enemyObjs;
     public Transform[] spawnPoints; // 적 프리펨 배열과 생성 위치 배열 변수를 선언
 
@@ -28,7 +34,40 @@ public class GameManager : MonoBehaviour
     {
         spawnList = new List<Spawn>();
         enemyObjs = new string[] { "EnemyS", "EnemyM", "EnemyL", "EnemyB" }; // 풀링을 사용하는 GameManager에도 보스 로직 추가
+        StageStart();
+    }
+
+    public void StageStart()
+    {
+        // Stage UI Load
+        stageAnim.SetTrigger("On");
+        stageAnim.GetComponent<Text>().text = "Stage " + stage + "\nStart"; // 스테이지 숫자가 UI Text에 반영되도록 로직 작성
+        clearAnim.GetComponent<Text>().text = "Stage " + stage + "\nClear!!";
+
+        // Enemy Spawn File Read
         ReadSpawnFile();
+
+        // Fade In
+        fadeAnim.SetTrigger("In");
+    }
+
+    public void StageEnd()
+    {
+        // Clear UI Load
+        clearAnim.SetTrigger("On");
+
+        // Fade Out
+        fadeAnim.SetTrigger("In");
+
+        // Player Repos
+        player.transform.position = playerPos.position;
+
+        // Stage Increament
+        stage++;
+        if (stage > 2)
+            Invoke("GameOver", 6);
+        else
+            Invoke("StageStart", 5); // 스테이지가 끝나면 다음 스테이지를 시작하도록 함수 호출
     }
 
     void ReadSpawnFile()
@@ -39,8 +78,9 @@ public class GameManager : MonoBehaviour
         spawnEnd = false;
 
         // 2, 리스폰 파일 읽기
-        TextAsset textFile = Resources.Load("Stage 0") as TextAsset; // TextAsset : 텍스트 파일 에셋 클래스
+        TextAsset textFile = Resources.Load("Stage " + stage) as TextAsset; // TextAsset : 텍스트 파일 에셋 클래스
         // Resources.Load() : Resources 폴더 내 파일 불러오기
+        // 스테이지 변수를 통한 적 배치 파일 로드
         StringReader stringReader = new StringReader(textFile.text); // StringReader : 파일 내의 문자열 데이터 읽기 클래스
 
         while(stringReader != null)
@@ -108,6 +148,7 @@ public class GameManager : MonoBehaviour
         Rigidbody2D rigid = enemy.GetComponent<Rigidbody2D>();
         Enemy enemyLogic = enemy.GetComponent<Enemy>();
         enemyLogic.player = player; // 적 생성 직후에 플레이어 변수를 넘겨주는 것으로 프리펩은 이미 Scene에 올라온 오브젝트에 접근 불가능한 문제 해결
+        enemyLogic.gameManager = this; // this : 클래스 자신을 일컫는 키워드
         enemyLogic.objectManager = objectManager;
         if(enemyPoint == 5 || enemyPoint == 6) // Right Spawn
         {
@@ -191,6 +232,15 @@ public class GameManager : MonoBehaviour
     public void GameOver()
     {
         gameOverSet.SetActive(true);
+    }
+
+    public void CallExplosion(Vector3 pos, string type)
+    {
+        GameObject explosion = objectManager.MakeObj("Explosion");
+        Explosion explosionLogic = explosion.GetComponent<Explosion>();
+
+        explosion.transform.position = pos;
+        explosionLogic.StartExplosion(type);
     }
 
     public void GameRetry()

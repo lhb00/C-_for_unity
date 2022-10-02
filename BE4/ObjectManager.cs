@@ -18,6 +18,7 @@ public class ObjectManager : MonoBehaviour
     public GameObject bulletFollowerprefab;
     public GameObject bulletBossAprefab; // 보스 총알 프리펩을 오브젝트 풀링에 등록
     public GameObject bulletBossBprefab;
+    public GameObject explosionprefab;
 
     GameObject[] enemyB;
     GameObject[] enemyL; // 프리펩을 생성하여 저장할 배열 변수 생성
@@ -35,6 +36,7 @@ public class ObjectManager : MonoBehaviour
     GameObject[] bulletFollower;
     GameObject[] bulletBossA;
     GameObject[] bulletBossB;
+    GameObject[] explosion;
 
     GameObject[] targetPool;
 
@@ -56,6 +58,7 @@ public class ObjectManager : MonoBehaviour
         bulletFollower = new GameObject[100];
         bulletBossA = new GameObject[50];
         bulletBossB = new GameObject[1000];
+        explosion = new GameObject[20];
 
         Generate(); // 첫 로딩 시간 = 장면 배치 + 오브젝트 풀 생성
     }
@@ -150,6 +153,12 @@ public class ObjectManager : MonoBehaviour
             bulletBossB[index] = Instantiate(bulletBossBprefab);
             bulletBossB[index].SetActive(false);
         }
+
+        for (int index = 0; index < explosion.Length; index++)
+        {
+            explosion[index] = Instantiate(explosionprefab);
+            explosion[index].SetActive(false);
+        }
     }
 
     public GameObject MakeObj(string type) // 오브젝트 풀에 접근할 수 있는 함수 생성
@@ -197,6 +206,9 @@ public class ObjectManager : MonoBehaviour
                 break;
             case "bulletBossB":
                 targetPool = bulletBossB;
+                break;
+            case "Explosion":
+                targetPool = explosion;
                 break;
         }
 
@@ -254,6 +266,9 @@ public class ObjectManager : MonoBehaviour
                 break;
             case "bulletBossB":
                 targetPool = bulletBossB;
+                break;
+            case "Explosion":
+                targetPool = explosion;
                 break;
         }
 
