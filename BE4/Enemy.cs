@@ -45,7 +45,7 @@ public class Enemy : MonoBehaviour
         switch(enemyName)
         {
             case "B":
-                health = 3000;
+                health = 1000;
                 Invoke("Stop", 2);
                 break;
             case "L":
@@ -293,7 +293,7 @@ public class Enemy : MonoBehaviour
                 itemBoom.transform.position = transform.position;
             }
             gameObject.SetActive(false); // Destory()는 SetActive(false)로 교체
-            transform.rotation = Quaternion.identity; // Quaterion.identuty  : 기본 회전값 = 0
+            transform.rotation = Quaternion.identity; // Quaterion.identity  : 기본 회전값 = 0
             gameManager.CallExplosion(transform.position, enemyName);
 
             // Boss Kill

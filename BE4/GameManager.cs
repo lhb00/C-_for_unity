@@ -57,7 +57,7 @@ public class GameManager : MonoBehaviour
         clearAnim.SetTrigger("On");
 
         // Fade Out
-        fadeAnim.SetTrigger("In");
+        fadeAnim.SetTrigger("Out");
 
         // Player Repos
         player.transform.position = playerPos.position;
