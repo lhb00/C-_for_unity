@@ -9,6 +9,7 @@ public class Player : MonoBehaviour
     public bool[] hasWeapons;
     public GameObject[] grenades; // 공전하는 물체를 컨트롤하기 위해 배열변수 생성
     public int hasGrenades;
+    public Camera followCamera; // 플레이어에 메인카메라 변수를 만들고 할당하기
 
     public int ammo; // 탄약, 동전, 체력, 수류탄(필살기) 변수 생성
     public int health;
@@ -26,6 +27,7 @@ public class Player : MonoBehaviour
     bool jDown; // bool 변수 선언 후, GetButtonDown()으로 점프 입력 받기
     bool iDown;
     bool fDown; // 키입력, 공격딜레이, 공격준비 변수 선언
+    bool rDown; // 재장전에 관련된 변수와 함수 추가
     bool sDown1; // 장비 단축키 1, 2, 3 따로 변수 생성 및 Input 버튼으로 등록
     bool sDown2;
     bool sDown3;
@@ -33,6 +35,7 @@ public class Player : MonoBehaviour
     bool isJump; // 무한 점프를 막기 위한 제약 조건 필요
     bool isDodge;
     bool isSwap; // 교체 시간차를 위한 플래그 로직 작성
+    bool isReload;
     bool isFireReady = true;
 
     Vector3 moveVec;
@@ -59,6 +62,7 @@ public class Player : MonoBehaviour
         Turn();
         Jump();
         Attack(); // 공격함수 추가
+        Reload();
         Dodge();
         Interaction();
         Swap();
@@ -72,7 +76,8 @@ public class Player : MonoBehaviour
         vAxis = Input.GetAxisRaw("Vertical");
         wDown = Input.GetButton("Walk"); // Shift는 누를 때만 작동되도록 GetButton() 함수 사용
         jDown = Input.GetButtonDown("Jump");
-        fDown = Input.GetButtonDown("Fire1");
+        fDown = Input.GetButton("Fire1"); // 공격 인풋을 GetButton()으로 교체
+        rDown = Input.GetButtonDown("Reload");
         iDown = Input.GetButtonDown("Interaction");
         sDown1 = Input.GetButtonDown("Swap1");
         sDown2 = Input.GetButtonDown("Swap2");
@@ -85,11 +90,12 @@ public class Player : MonoBehaviour
 
         if (isDodge) // 회피 중에는 움직임 벡터 -> 회피방향 벡터로 바뀌도록 구현
             moveVec = dogeVec;
+
+        if (isSwap || isReload || !isFireReady) // 공격, 장전 중에는 이동 불가 되도록 설정
+            moveVec = Vector3.zero;
+
         transform.position += moveVec * speed * (wDown ? 0.3f : 1f) * Time.deltaTime; // transform 이동은 반드시 Time.deltaTime 넣기
         // bool 형태 조건 ? true일 때 값 : false일 때 값(삼항연산자)
-
-        if (isSwap || !isFireReady) // 공격 중에는 이동 불가 되도록 설정
-            moveVec = Vector3.zero;
 
         anim.SetBool("isRun", moveVec != Vector3.zero); // SetBool() 함수로 파라미터 값을 설정하기
         anim.SetBool("isWalk", wDown);
@@ -97,7 +103,20 @@ public class Player : MonoBehaviour
 
     void Turn()
     {
+        // 1. 키보드에 의한 회전
         transform.LookAt(transform.position + moveVec); // LookAt() : 지정된 벡터를 향해서 회전시켜주는 함수
+        // 2. 마우스에 의한 회전
+        if(fDown) // 마우스 클릭했을 때만 회전하도록 조건 추가
+        {
+            Ray ray = followCamera.ScreenPointToRay(Input.mousePosition); // ScreenPointToRay() : 스크린에서 월드로 Ray를 쏘는 함수
+            RaycastHit rayHit; // RayCastHit 정보를 저장할 변수 추가
+            if (Physics.Raycast(ray, out rayHit, 100)) // out : return처럼 반환값을 주어진 변수에 저장하는 키워드
+            {
+                Vector3 nextVec = rayHit.point - transform.position; // RayCastHit의 마우스 클릭 위치를 활용하여 회전을 구현
+                nextVec.y = 0; // RayCastHit의 높이는 무시하도록 Y축 값을 0으로 초기화
+                transform.LookAt(transform.position + nextVec);
+            }
+        }
     }
 
     void Jump()
@@ -121,9 +140,36 @@ public class Player : MonoBehaviour
         if(fDown && isFireReady && !isDodge && !isSwap)
         {
             equipWeapon.Use(); // 조건이 충족되면 무기에 있는 함수 실행
-            anim.SetTrigger("doSwing");
+            anim.SetTrigger(equipWeapon.type == Weapon.Type.Melee ? "doSwing" : "doShot"); // 무기 타입에 따라 다른 트리거 실행
             fireDelay = 0; // 공격딜레이를 0으로 돌려서 다음 공격까지 기다리도록 작성
         }
+    }
+
+    void Reload()
+    {
+        // 무기가 있는지, 무기 타입이 맞는지, 총알은 있는지 확인
+        if (equipWeapon == null)
+            return;
+        if (equipWeapon.type == Weapon.Type.Melee)
+            return;
+        if (ammo == 0)
+            return;
+        if(rDown && !isJump && !isDodge && !isSwap && isFireReady)
+        {
+            // 애니메이터 트리거 호출과 플래그변수 변화 작성
+            anim.SetTrigger("doReload");
+            isReload = true;
+
+            Invoke("ReloadOut", 3f);
+        }
+    }
+
+    void ReloadOut()
+    {
+        int reAmmo = ammo  + equipWeapon.curAmmo < equipWeapon.maxAmmo ? ammo : equipWeapon.maxAmmo - equipWeapon.curAmmo; // 플레이어가 소지한 탄을 고려해서 계산하기
+        equipWeapon.curAmmo += reAmmo;
+        ammo -= reAmmo;
+        isReload = false;
     }
 
     void Dodge()
