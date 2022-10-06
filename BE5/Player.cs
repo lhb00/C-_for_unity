@@ -9,6 +9,7 @@ public class Player : MonoBehaviour
     public bool[] hasWeapons;
     public GameObject[] grenades; // 공전하는 물체를 컨트롤하기 위해 배열변수 생성
     public int hasGrenades;
+    public GameObject grenadeObj;
     public Camera followCamera; // 플레이어에 메인카메라 변수를 만들고 할당하기
 
     public int ammo; // 탄약, 동전, 체력, 수류탄(필살기) 변수 생성
@@ -27,6 +28,7 @@ public class Player : MonoBehaviour
     bool jDown; // bool 변수 선언 후, GetButtonDown()으로 점프 입력 받기
     bool iDown;
     bool fDown; // 키입력, 공격딜레이, 공격준비 변수 선언
+    bool gDown;
     bool rDown; // 재장전에 관련된 변수와 함수 추가
     bool sDown1; // 장비 단축키 1, 2, 3 따로 변수 생성 및 Input 버튼으로 등록
     bool sDown2;
@@ -37,6 +39,7 @@ public class Player : MonoBehaviour
     bool isSwap; // 교체 시간차를 위한 플래그 로직 작성
     bool isReload;
     bool isFireReady = true;
+    bool isBorder; // 벽 충돌 플래그 bool 변수를 생성
 
     Vector3 moveVec;
     Vector3 dogeVec; // 회피 도중 방향전환이 되지 않도록 회피방향 Vector3 추가
@@ -61,6 +64,7 @@ public class Player : MonoBehaviour
         Move();
         Turn();
         Jump();
+        Grenade(); // 수류탄 전용 Input과 함께 함수 생성
         Attack(); // 공격함수 추가
         Reload();
         Dodge();
@@ -77,6 +81,7 @@ public class Player : MonoBehaviour
         wDown = Input.GetButton("Walk"); // Shift는 누를 때만 작동되도록 GetButton() 함수 사용
         jDown = Input.GetButtonDown("Jump");
         fDown = Input.GetButton("Fire1"); // 공격 인풋을 GetButton()으로 교체
+        gDown = Input.GetButtonDown("Fire2");
         rDown = Input.GetButtonDown("Reload");
         iDown = Input.GetButtonDown("Interaction");
         sDown1 = Input.GetButtonDown("Swap1");
@@ -94,7 +99,8 @@ public class Player : MonoBehaviour
         if (isSwap || isReload || !isFireReady) // 공격, 장전 중에는 이동 불가 되도록 설정
             moveVec = Vector3.zero;
 
-        transform.position += moveVec * speed * (wDown ? 0.3f : 1f) * Time.deltaTime; // transform 이동은 반드시 Time.deltaTime 넣기
+        if(!isBorder) // 플래그 변수를 이동 제한 조건으로 활용하기
+            transform.position += moveVec * speed * (wDown ? 0.3f : 1f) * Time.deltaTime; // transform 이동은 반드시 Time.deltaTime 넣기
         // bool 형태 조건 ? true일 때 값 : false일 때 값(삼항연산자)
 
         anim.SetBool("isRun", moveVec != Vector3.zero); // SetBool() 함수로 파라미터 값을 설정하기
@@ -127,6 +133,33 @@ public class Player : MonoBehaviour
             anim.SetBool("isJump",true); // 기존 코드를 활용하여 애니메이션 로직 작성
             anim.SetTrigger("doJump");
             isJump = true;
+        }
+    }
+
+    void Grenade()
+    {
+        // 수류탄을 쓰기 이전에 제한 조건들을 작성
+        if (hasGrenades == 0)
+            return;
+
+        // 마우스 위치로 바로 던질 수 있도록 RayCast 사용
+        if(gDown && !isReload && !isSwap)
+        {
+            Ray ray = followCamera.ScreenPointToRay(Input.mousePosition); // ScreenPointToRay() : 스크린에서 월드로 Ray를 쏘는 함수
+            RaycastHit rayHit; // RayCastHit 정보를 저장할 변수 추가
+            if (Physics.Raycast(ray, out rayHit, 100)) // out : return처럼 반환값을 주어진 변수에 저장하는 키워드
+            {
+                Vector3 nextVec = rayHit.point - transform.position; // RayCastHit의 마우스 클릭 위치를 활용하여 회전을 구현
+                nextVec.y = 10; // RayCastHit의 높이는 무시하도록 Y축 값을 0으로 초기화
+
+                GameObject instantGrenade = Instantiate(grenadeObj, transform.position, transform.rotation); // Instantiate() 함수로 수류탄 생성
+                Rigidbody rigidGrenade = instantGrenade.GetComponent<Rigidbody>();
+                rigidGrenade.AddForce(nextVec, ForceMode.Impulse); // 생성된 수류탄의 리지드바디를 활용하여 던지는 로직 구현
+                rigidGrenade.AddTorque(Vector3.back * 10, ForceMode.Impulse);
+
+                hasGrenades--;
+                grenades[hasGrenades].SetActive(false);
+            }
         }
     }
 
@@ -240,6 +273,23 @@ public class Player : MonoBehaviour
     void SwapOut()
     {
         isSwap = false;
+    }
+
+    void FreezeRotation()
+    {
+        rigid.angularVelocity = Vector3.zero; // angularVelocity : 물리 회전 속도
+    }
+
+    void StopToWall()
+    {
+        Debug.DrawRay(transform.position, transform.forward * 5, Color.green); // DrawRay() : Scene내에서 Ray를 보여주는 함수
+        isBorder = Physics.Raycast(transform.position, transform.forward, 5, LayerMask.GetMask("Wall")); // Raycast() : Ray를 쏘아 닿는 오브젝트를 감지하는 함수
+    }
+
+    void FixedUpdate() // FixedUpdate() 함수와 함께 새로운 함수도 선언하여 호출
+    {
+        FreezeRotation();
+        StopToWall();
     }
 
     void OnCollisionEnter(Collision collision) // OnCollisionEnter() 이벤트 함수로 착지 구현
