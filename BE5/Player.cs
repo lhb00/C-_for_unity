@@ -40,12 +40,14 @@ public class Player : MonoBehaviour
     bool isReload;
     bool isFireReady = true;
     bool isBorder; // 벽 충돌 플래그 bool 변수를 생성
+    bool isDamage; // 무적타임을 위해 bool 변수 추가
 
     Vector3 moveVec;
     Vector3 dogeVec; // 회피 도중 방향전환이 되지 않도록 회피방향 Vector3 추가
 
     Rigidbody rigid; // 물리 효과를 위해 Rigidbody 변수 선언 후, 초기화
     Animator anim;
+    MeshRenderer[] meshs; // MeshRenderer 배열 변수 추가
 
     GameObject nearObject; // 트리거된 아이템을 저장하기 위한 변수 선언
     Weapon equipWeapon; // 기존 지정해둔 현재 장비 변수를 Weapon 타입으로 변경
@@ -56,6 +58,7 @@ public class Player : MonoBehaviour
     {
         rigid = GetComponent<Rigidbody>();
         anim = GetComponentInChildren<Animator>(); // Animator 변수를 GetComponentINChildren()으로 초기화
+        meshs = GetComponentsInChildren<MeshRenderer>();
     }
 
     void Update()
@@ -333,6 +336,36 @@ public class Player : MonoBehaviour
                     break;
             }
             Destroy(other.gameObject);
+        }
+
+        else if(other.tag=="EnemyBullet") // OnTriggerEnter에 EnemyBullet의 경우 추가
+        {
+            if(!isDamage)
+            {
+                Bullet enemyBullet = other.GetComponent<Bullet>(); // Bullet 스크립트 재활용하여 데미지 적용
+                health -= enemyBullet.damage;
+                // 리지드바디 유무를 조건으로 하여 Destroy() 호출
+                if (other.GetComponent<Rigidbody>() != null)
+                    Destroy(other.gameObject);
+                StartCoroutine(OnDamage());// 리액션을 위한 코루틴 생성 및 호출
+            }
+
+        }
+    }
+
+    IEnumerator OnDamage()
+    {
+        isDamage = true;
+        // 반복문을 사용하여 모든 재질의 색상을 변경
+        foreach(MeshRenderer mesh in meshs)
+        {
+            mesh.material.color = Color.yellow;
+        }
+        yield return new WaitForSeconds(1f); // WaitForSeconds()로 무적 타임 조정
+        isDamage = false;
+        foreach (MeshRenderer mesh in meshs)
+        {
+            mesh.material.color = Color.white;
         }
     }
 

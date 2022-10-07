@@ -5,10 +5,15 @@ using UnityEngine.AI; // Nav 관련 클래스는 UnityEngine.AI 네임스페이�
 
 public class Enemy : MonoBehaviour
 {
+    public enum Type { A, B, C }; // enum으로 타입을 나누고 그것을 지정할 변수 생성
+    public Type enemyType;
     public int maxHealth; // 체력과 컴포넌트를 담을 변수 선언
     public int curHealth;
     public Transform target;
+    public BoxCollider meleeArea;
+    public GameObject bullet; // 미사일 프리펩을 담아둘 변수 생성
     public bool isChase; // 추적을 결정하는 bool 변수 추가
+    public bool isAttack;
 
     Rigidbody rigid;
     BoxCollider boxCollider;
@@ -36,8 +41,13 @@ public class Enemy : MonoBehaviour
 
     void Update()
     {
-        if(isChase)
+        // 기존 로직은 목표만 잃어버리는 것이므로 이동이 유지됨
+        if(nav.enabled)
+        {
             nav.SetDestination(target.position); // SetDestination() : 도착할 목표 위치 지정 함수
+            nav.isStopped = !isChase; // isStopped를 사용하여 완벽하게 멈추도록 작성
+        }
+            
     }
 
     void FreezeVelocity()
@@ -49,8 +59,83 @@ public class Enemy : MonoBehaviour
         }
     }
 
+    // 타겟팅을 위한 함수 생성
+
+    void Targeting()
+    {
+        float targetRadius = 0; // SphereCast()의 반지름, 길이를 조정할 변수 선언
+        float targetRange = 0;
+
+        switch (enemyType)
+        {
+            case Type.A:
+                targetRadius = 1.5f; // SphereCast()의 반지름, 길이를 조정할 변수 선언
+                targetRange = 3f;
+                break;
+            case Type.B:
+                targetRadius = 1.5f; // SphereCast()의 반지름, 길이를 조정할 변수 선언
+                targetRange = 12f;
+                break;
+            case Type.C:
+                targetRadius = 0.5f; // SphereCast()의 반지름, 길이를 조정할 변수 선언
+                targetRange = 25f;
+                break;
+        }
+
+        RaycastHit[] rayHits = Physics.SphereCastAll(transform.position, targetRadius, transform.forward, targetRange, LayerMask.GetMask("Player"));
+
+        if(rayHits.Length > 0 && !isAttack) // rayHit 변수에 데이터가 들어오면 공격 코루틴 실행
+        {
+            StartCoroutine(Attack());
+        }
+    }
+
+    IEnumerator Attack()
+    {
+        isChase = false; // 먼저 정지를 한 다음, 애니메이션과 함께 공격범위 활성화
+        isAttack = true;
+        anim.SetBool("isAttack", true);
+
+        switch(enemyType)
+        {
+            case Type.A:
+                yield return new WaitForSeconds(0.2f);
+                meleeArea.enabled = true;
+
+                yield return new WaitForSeconds(1f);
+                meleeArea.enabled = false;
+
+                yield return new WaitForSeconds(1f);
+                break;
+            case Type.B:
+                yield return new WaitForSeconds(0.1f);
+                rigid.AddForce(transform.forward * 20, ForceMode.Impulse); // AddForce()로 돌격 구현
+                meleeArea.enabled = true;
+
+                yield return new WaitForSeconds(0.5f);
+                rigid.velocity = Vector3.zero; // velocity를 Vector3.zero로 속도 제어
+                meleeArea.enabled = false;
+
+                yield return new WaitForSeconds(2f);
+                break;
+            case Type.C:
+                yield return new WaitForSeconds(0.5f);
+                GameObject instantBullet = Instantiate(bullet, transform.position, transform.rotation); // Instantiate() 함수로 미사일 인스턴스화
+                Rigidbody rigidbullet = instantBullet.GetComponent<Rigidbody>();
+                rigidbullet.velocity = transform.forward * 20;
+
+                yield return new WaitForSeconds(2f);
+                break;
+        }
+        
+        isChase = true; // 먼저 정지를 한 다음, 애니메이션과 함께 공격범위 활성화
+        isAttack = false;
+        anim.SetBool("isAttack", false);
+    }
+
     void FixedUpdate()
     {
+        Targeting();
         FreezeVelocity();
     }
 
