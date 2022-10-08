@@ -344,16 +344,20 @@ public class Player : MonoBehaviour
             {
                 Bullet enemyBullet = other.GetComponent<Bullet>(); // Bullet 스크립트 재활용하여 데미지 적용
                 health -= enemyBullet.damage;
-                // 리지드바디 유무를 조건으로 하여 Destroy() 호출
-                if (other.GetComponent<Rigidbody>() != null)
-                    Destroy(other.gameObject);
-                StartCoroutine(OnDamage());// 리액션을 위한 코루틴 생성 및 호출
+
+                bool isBossAtk = other.name == "Boss Melee Area"; // 보스의 근접공격 오브젝트의 이름으로 보스 공격을 인지
+                StartCoroutine(OnDamage(isBossAtk));// 리액션을 위한 코루틴 생성 및 호출
             }
+
+            // 리지드바디 유무를 조건으로 하여 Destroy() 호출
+            // 플레이어의 무적과 관계없이 투사체는 Destroy() 되도록
+            if (other.GetComponent<Rigidbody>() != null)
+                Destroy(other.gameObject);
 
         }
     }
 
-    IEnumerator OnDamage()
+    IEnumerator OnDamage(bool isBossAtk)
     {
         isDamage = true;
         // 반복문을 사용하여 모든 재질의 색상을 변경
@@ -361,12 +365,20 @@ public class Player : MonoBehaviour
         {
             mesh.material.color = Color.yellow;
         }
+
+        if (isBossAtk)
+            rigid.AddForce(transform.forward * -25, ForceMode.Impulse); // 피격 코루틴에서 넉백을 AddForce()로 구현
+
         yield return new WaitForSeconds(1f); // WaitForSeconds()로 무적 타임 조정
         isDamage = false;
+
         foreach (MeshRenderer mesh in meshs)
         {
             mesh.material.color = Color.white;
         }
+
+        if (isBossAtk)
+            rigid.velocity = Vector3.zero;
     }
 
     void OnTriggerStay(Collider other) // 트리거 이벤트인 OnTriggerStay, Exit 사용 

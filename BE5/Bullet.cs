@@ -6,10 +6,11 @@ public class Bullet : MonoBehaviour
 {
     public int damage;
     public bool isMelee;
+    public bool isRock; // bool 변수를 추가하여 조건 추가
 
     void OnCollisionEnter(Collision collision) // OnCollisionEnter()에서 각각 충돌 로직 작성
     {
-        if(collision.gameObject.tag == "Floor")
+        if(!isRock && collision.gameObject.tag == "Floor")
         {
             Destroy(gameObject, 3);
         }
