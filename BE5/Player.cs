@@ -41,6 +41,7 @@ public class Player : MonoBehaviour
     bool isFireReady = true;
     bool isBorder; // 벽 충돌 플래그 bool 변수를 생성
     bool isDamage; // 무적타임을 위해 bool 변수 추가
+    bool isShop;
 
     Vector3 moveVec;
     Vector3 dogeVec; // 회피 도중 방향전환이 되지 않도록 회피방향 Vector3 추가
@@ -173,7 +174,7 @@ public class Player : MonoBehaviour
         fireDelay += Time.deltaTime; // 공격딜레이에 시간을 더해주고 공격가능 여부를 확인
         isFireReady = equipWeapon.rate < fireDelay;
 
-        if(fDown && isFireReady && !isDodge && !isSwap)
+        if(fDown && isFireReady && !isDodge && !isSwap && !isShop)
         {
             equipWeapon.Use(); // 조건이 충족되면 무기에 있는 함수 실행
             anim.SetTrigger(equipWeapon.type == Weapon.Type.Melee ? "doSwing" : "doShot"); // 무기 타입에 따라 다른 트리거 실행
@@ -190,7 +191,7 @@ public class Player : MonoBehaviour
             return;
         if (ammo == 0)
             return;
-        if(rDown && !isJump && !isDodge && !isSwap && isFireReady)
+        if(rDown && !isJump && !isDodge && !isSwap && isFireReady && !isShop)
         {
             // 애니메이터 트리거 호출과 플래그변수 변화 작성
             anim.SetTrigger("doReload");
@@ -210,7 +211,7 @@ public class Player : MonoBehaviour
 
     void Dodge()
     {
-        if (jDown && moveVec != Vector3.zero &&!isJump && !isDodge && !isSwap) // 움직임을 조건으로 추가해서 점프와 회피로 나누기
+        if (jDown && moveVec != Vector3.zero &&!isJump && !isDodge && !isSwap && !isShop) // 움직임을 조건으로 추가해서 점프와 회피로 나누기
         {
             dogeVec = moveVec;
             speed *= 2; // 회피는 이동속도만 2배 상승하도록 작성
@@ -229,7 +230,7 @@ public class Player : MonoBehaviour
 
     void Interaction() 
     {
-        if(iDown && nearObject != null && !isJump && !isDodge) // 상호작용 함수가 작동될 수 있는 조건 작성
+        if(iDown && nearObject != null && !isJump && !isDodge && !isShop) // 상호작용 함수가 작동될 수 있는 조건 작성
         {
             if(nearObject.tag == "Weapon")
             {
@@ -238,6 +239,13 @@ public class Player : MonoBehaviour
                 hasWeapons[weaponIndex] = true; // 아이템 정보를 가져와서 해당 무기 입수를 체크
 
                 Destroy(nearObject);
+            }
+
+            else if(nearObject.tag == "Shop")
+            {
+                Shop shop = nearObject.GetComponent<Shop>();
+                shop.Enter(this); // 자기자신에 접근할 때는 this 키워드 사용
+                isShop = true; // 상점 입장하는 시점에 플래그 변수를 true로 변경
             }
         }
     }
@@ -383,7 +391,7 @@ public class Player : MonoBehaviour
 
     void OnTriggerStay(Collider other) // 트리거 이벤트인 OnTriggerStay, Exit 사용 
     {
-        if (other.tag == "Weapon") // Weapon 태그를 조건으로 하여 로직 작성
+        if (other.tag == "Weapon" || other.tag == "Shop") // Weapon 태그를 조건으로 하여 로직 작성 // Shop 태그로 nearObject 변수에 저장하고 사용하기
             nearObject = other.gameObject;
     }
 
@@ -391,6 +399,13 @@ public class Player : MonoBehaviour
     {
         if (other.tag == "Weapon")
             nearObject = null;
+        else if (other.tag == "Shop")
+        {
+            Shop shop = nearObject.GetComponent<Shop>(); // OnTriggerExit()에는 퇴장 함수를 호출
+            shop.Exit();
+            isShop = false; // 상점 퇴장하는 시점에 플래그 변수를 false로 변경
+            nearObject = null;
+        }
     }
 
 
