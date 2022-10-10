@@ -14,6 +14,12 @@ public class Player : MonoBehaviour
     public GameManager manager; // 플레이어 스크립트에 게임매니저 변수 선언
 
     public AudioSource jumpSound; // 각 사운드를 저장할 AudioSource 변수 생성
+    public AudioSource dodgeSound;
+    public AudioSource meleeAttackSound;
+    public AudioSource rangeAttackSound;
+    public AudioSource grenadeSound;
+    public AudioSource swapSound;
+    public AudioSource reloadSound;
 
     public int ammo; // 탄약, 동전, 체력, 수류탄(필살기) 변수 생성
     public int health;
@@ -165,7 +171,7 @@ public class Player : MonoBehaviour
                 Rigidbody rigidGrenade = instantGrenade.GetComponent<Rigidbody>();
                 rigidGrenade.AddForce(nextVec, ForceMode.Impulse); // 생성된 수류탄의 리지드바디를 활용하여 던지는 로직 구현
                 rigidGrenade.AddTorque(Vector3.back * 10, ForceMode.Impulse);
-
+                grenadeSound.Play();
                 hasGrenades--;
                 grenades[hasGrenades].SetActive(false);
             }
@@ -183,6 +189,11 @@ public class Player : MonoBehaviour
         {
             equipWeapon.Use(); // 조건이 충족되면 무기에 있는 함수 실행
             anim.SetTrigger(equipWeapon.type == Weapon.Type.Melee ? "doSwing" : "doShot"); // 무기 타입에 따라 다른 트리거 실행
+
+            if (equipWeapon.type == Weapon.Type.Melee)
+                meleeAttackSound.Play();
+            else
+                rangeAttackSound.Play();
             fireDelay = 0; // 공격딜레이를 0으로 돌려서 다음 공격까지 기다리도록 작성
         }
     }
@@ -201,6 +212,8 @@ public class Player : MonoBehaviour
             // 애니메이터 트리거 호출과 플래그변수 변화 작성
             anim.SetTrigger("doReload");
             isReload = true;
+
+            reloadSound.Play();
 
             Invoke("ReloadOut", 3f);
         }
@@ -222,6 +235,7 @@ public class Player : MonoBehaviour
             speed *= 2; // 회피는 이동속도만 2배 상승하도록 작성
             anim.SetTrigger("doDodge");
             isDodge = true;
+            dodgeSound.Play();
 
             Invoke("DodgeOut", 0.5f); // Invoke() 함수로 시간차 함수 호출
         }
@@ -281,6 +295,8 @@ public class Player : MonoBehaviour
             anim.SetTrigger("doSwap");
 
             isSwap = true;
+
+            swapSound.Play();
 
             Invoke("SwapOut", 0.4f);
         }
