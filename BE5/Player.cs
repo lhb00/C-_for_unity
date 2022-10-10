@@ -11,12 +11,14 @@ public class Player : MonoBehaviour
     public int hasGrenades;
     public GameObject grenadeObj;
     public Camera followCamera; // 플레이어에 메인카메라 변수를 만들고 할당하기
+    public GameManager manager; // 플레이어 스크립트에 게임매니저 변수 선언
+
+    public AudioSource jumpSound; // 각 사운드를 저장할 AudioSource 변수 생성
 
     public int ammo; // 탄약, 동전, 체력, 수류탄(필살기) 변수 생성
     public int health;
     public int coin;
-
-
+    public int score;
     public int maxAmmo; // 각 수치의 최대값을 저장할 변수도 생성
     public int maxHealth;
     public int maxCoin;
@@ -42,6 +44,7 @@ public class Player : MonoBehaviour
     bool isBorder; // 벽 충돌 플래그 bool 변수를 생성
     bool isDamage; // 무적타임을 위해 bool 변수 추가
     bool isShop;
+    bool isDead;
 
     Vector3 moveVec;
     Vector3 dogeVec; // 회피 도중 방향전환이 되지 않도록 회피방향 Vector3 추가
@@ -51,7 +54,7 @@ public class Player : MonoBehaviour
     MeshRenderer[] meshs; // MeshRenderer 배열 변수 추가
 
     GameObject nearObject; // 트리거된 아이템을 저장하기 위한 변수 선언
-    Weapon equipWeapon; // 기존 지정해둔 현재 장비 변수를 Weapon 타입으로 변경
+    public Weapon equipWeapon; // 기존 지정해둔 현재 장비 변수를 Weapon 타입으로 변경 // 현재 무기에 접근하기 위해 public으로 공개
     int equipWeaponIndex = -1;
     float fireDelay;
 
@@ -100,7 +103,7 @@ public class Player : MonoBehaviour
         if (isDodge) // 회피 중에는 움직임 벡터 -> 회피방향 벡터로 바뀌도록 구현
             moveVec = dogeVec;
 
-        if (isSwap || isReload || !isFireReady) // 공격, 장전 중에는 이동 불가 되도록 설정
+        if (isSwap || isReload || !isFireReady || isDead) // 공격, 장전 중에는 이동 불가 되도록 설정
             moveVec = Vector3.zero;
 
         if(!isBorder) // 플래그 변수를 이동 제한 조건으로 활용하기
@@ -116,7 +119,7 @@ public class Player : MonoBehaviour
         // 1. 키보드에 의한 회전
         transform.LookAt(transform.position + moveVec); // LookAt() : 지정된 벡터를 향해서 회전시켜주는 함수
         // 2. 마우스에 의한 회전
-        if(fDown) // 마우스 클릭했을 때만 회전하도록 조건 추가
+        if(fDown && !isDead) // 마우스 클릭했을 때만 회전하도록 조건 추가
         {
             Ray ray = followCamera.ScreenPointToRay(Input.mousePosition); // ScreenPointToRay() : 스크린에서 월드로 Ray를 쏘는 함수
             RaycastHit rayHit; // RayCastHit 정보를 저장할 변수 추가
@@ -131,12 +134,14 @@ public class Player : MonoBehaviour
 
     void Jump()
     {
-        if(jDown && moveVec == Vector3.zero && !isJump && !isDodge && !isSwap) // bool 변수는 실행 조건으로 활용 // bool 값을 반대로 사용하고 싶다면 앞에 ! 추가 // 액션 도중에 다른 액션이 실행되지 않도록 조건 추가
+        if(jDown && moveVec == Vector3.zero && !isJump && !isDodge && !isSwap && !isDead) // bool 변수는 실행 조건으로 활용 // bool 값을 반대로 사용하고 싶다면 앞에 ! 추가 // 액션 도중에 다른 액션이 실행되지 않도록 조건 추가
         {
             rigid.AddForce(Vector3.up * 15, ForceMode.Impulse); // AddForce() 함수로 물리적인 힘을 가하기
             anim.SetBool("isJump",true); // 기존 코드를 활용하여 애니메이션 로직 작성
             anim.SetTrigger("doJump");
             isJump = true;
+
+            jumpSound.Play(); // 소리가 나야할 액션, 활동 로직에 Play() 함수 호출
         }
     }
 
@@ -147,7 +152,7 @@ public class Player : MonoBehaviour
             return;
 
         // 마우스 위치로 바로 던질 수 있도록 RayCast 사용
-        if(gDown && !isReload && !isSwap)
+        if(gDown && !isReload && !isSwap && !isDead)
         {
             Ray ray = followCamera.ScreenPointToRay(Input.mousePosition); // ScreenPointToRay() : 스크린에서 월드로 Ray를 쏘는 함수
             RaycastHit rayHit; // RayCastHit 정보를 저장할 변수 추가
@@ -174,7 +179,7 @@ public class Player : MonoBehaviour
         fireDelay += Time.deltaTime; // 공격딜레이에 시간을 더해주고 공격가능 여부를 확인
         isFireReady = equipWeapon.rate < fireDelay;
 
-        if(fDown && isFireReady && !isDodge && !isSwap && !isShop)
+        if(fDown && isFireReady && !isDodge && !isSwap && !isShop && !isDead)
         {
             equipWeapon.Use(); // 조건이 충족되면 무기에 있는 함수 실행
             anim.SetTrigger(equipWeapon.type == Weapon.Type.Melee ? "doSwing" : "doShot"); // 무기 타입에 따라 다른 트리거 실행
@@ -191,7 +196,7 @@ public class Player : MonoBehaviour
             return;
         if (ammo == 0)
             return;
-        if(rDown && !isJump && !isDodge && !isSwap && isFireReady && !isShop)
+        if(rDown && !isJump && !isDodge && !isSwap && isFireReady && !isShop && !isDead)
         {
             // 애니메이터 트리거 호출과 플래그변수 변화 작성
             anim.SetTrigger("doReload");
@@ -211,7 +216,7 @@ public class Player : MonoBehaviour
 
     void Dodge()
     {
-        if (jDown && moveVec != Vector3.zero &&!isJump && !isDodge && !isSwap && !isShop) // 움직임을 조건으로 추가해서 점프와 회피로 나누기
+        if (jDown && moveVec != Vector3.zero &&!isJump && !isDodge && !isSwap && !isShop && !isDead) // 움직임을 조건으로 추가해서 점프와 회피로 나누기
         {
             dogeVec = moveVec;
             speed *= 2; // 회피는 이동속도만 2배 상승하도록 작성
@@ -230,7 +235,7 @@ public class Player : MonoBehaviour
 
     void Interaction() 
     {
-        if(iDown && nearObject != null && !isJump && !isDodge && !isShop) // 상호작용 함수가 작동될 수 있는 조건 작성
+        if(iDown && nearObject != null && !isJump && !isDodge && !isShop && !isDead) // 상호작용 함수가 작동될 수 있는 조건 작성
         {
             if(nearObject.tag == "Weapon")
             {
@@ -264,7 +269,7 @@ public class Player : MonoBehaviour
         if (sDown2) weaponIndex = 1;
         if (sDown3) weaponIndex = 2;
 
-        if ((sDown1 || sDown2 || sDown3) && !isJump && !isDodge) // 단축기 셋 중 하나만 눌러도 되도록 OR 조건 작성
+        if ((sDown1 || sDown2 || sDown3) && !isJump && !isDodge && !isDead) // 단축기 셋 중 하나만 눌러도 되도록 OR 조건 작성
         {
             if(equipWeapon != null) // 빈손일 경우는 생각하여 조건 추가하기
                 equipWeapon.gameObject.SetActive(false);
@@ -377,6 +382,9 @@ public class Player : MonoBehaviour
         if (isBossAtk)
             rigid.AddForce(transform.forward * -25, ForceMode.Impulse); // 피격 코루틴에서 넉백을 AddForce()로 구현
 
+        if (health <= 0 && !isDead) // 계속 죽음 함수 호출을 막기 위해 조건 추기
+            OnDie();
+
         yield return new WaitForSeconds(1f); // WaitForSeconds()로 무적 타임 조정
         isDamage = false;
 
@@ -387,6 +395,13 @@ public class Player : MonoBehaviour
 
         if (isBossAtk)
             rigid.velocity = Vector3.zero;
+    }
+
+    void OnDie()
+    {
+        anim.SetTrigger("doDie");
+        isDead = true; // 죽음 bool 변수 추가하여 모든 액션을 잠금
+        manager.GameOver();
     }
 
     void OnTriggerStay(Collider other) // 트리거 이벤트인 OnTriggerStay, Exit 사용 
